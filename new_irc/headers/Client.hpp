@@ -1,8 +1,10 @@
 #ifndef CLIENT_HPP
 # define CLIENT_HPP
 
-#include "ft_irc.hpp"
+class Client;
 
+#include "Utils.hpp"
+#include "Channel.hpp"
 
 class Client
 {
@@ -15,13 +17,24 @@ class Client
         std::string _realname;
         std::string _hostname;
 
-        // Channel     *_channels;
+        Channel     *_channels;
+
     public:
-        Client();
+        Client(int fd, int port, std::string const &host);
         ~Client();
 
-        void    setNickname(std::string const &nickname) { _nickname = nickname; }
-        void    setRealname(std::string const &username) { _username = username; }
+        void    setUserName(std::string const &username) { _username = username; }
+        void    setNickName(std::string const &nickname) { _nickname = nickname; }
+        void    setRealName(std::string const &realname) { _realname = realname; }
+        void    setHostName(std::string const &hostname) { _hostname = hostname; }
+
+        std::string getUserName() const { return _username; }
+        std::string getNickName() const { return _nickname; }
+        std::string getRealName() const { return _realname; }
+        std::string getHostName() const { return _hostname; }
+
+        int getFd() const { return _fd; }
+        int getPort() const { return _port; }
 };
 
 #endif
