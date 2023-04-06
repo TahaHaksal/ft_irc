@@ -27,14 +27,12 @@ std::vector<std::string> tokenize(std::string &msg) {
     std::vector<std::string> tokens;
     std::istringstream iss(msg);
     std::string token;
-	int	i = 0;
+	int	i = 1;
 
     while (std::getline(iss, token, ' ') || std::getline(iss, token, '\r') || std::getline(iss, token, '\n')){
 		tokens.push_back(token);
 		if (token[0] == ':')
 			break ;
-		i++;
 	}
-	msg = msg.substr(i);
     return tokens;
 }

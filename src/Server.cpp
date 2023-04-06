@@ -128,7 +128,7 @@ void Server::readMessage(int fd){
 	while (!std::strstr(buffer, "\r\n")){
 		memset(buffer, 0, BUFFER_SIZE);
  
-		errCheck(-1, recv(fd, buffer, BUFFER_SIZE, 0), "Error receiving the message");
+		errCheck(-1, read(fd, buffer, BUFFER_SIZE), "Error receiving the message");
 		//TO DO Burada komutlar satır satır işlenecek tokenize işlemi gerçekleşecek.
 		// msg.append(buffer);
 		std::string	str(buffer);
@@ -137,8 +137,11 @@ void Server::readMessage(int fd){
 			if (_map.find(tokens[0]) != _map.end()){
 				(this->*_map[tokens[0]])(fd, tokens);
 			}else {
-				std::cout << "Couldn't process the given command: " << str << "\n";
+				// std::cout << "Couldn't process the given command: " << str << "\n";
 			}
+			int i = str.find_first_of("\r\n");
+			str = str.substr(i + 1);
+			// std::cout << str << std::endl;
 		}
 	}
 }
