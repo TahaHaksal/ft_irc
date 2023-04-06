@@ -36,8 +36,12 @@ class Server{
 
 
         void                loop();
-        std::string         readMessage(int fd);
+        void                readMessage(int fd);
 
         void                quit(int fd, std::vector<std::string> token);
         void                join(int fd, std::vector<std::string> token){}
+        void                welcome(int fd, std::vector<std::string> token);
+        void                pass(int fd, std::vector<std::string> token);
+        void                nick(int fd, std::vector<std::string> token);
+        void                user(int fd, std::vector<std::string> token);
 };

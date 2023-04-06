@@ -12,6 +12,10 @@ Server::Server(char **av) : _usrCount(1)
     _socketFd = createSocket();
 	_map["QUIT"] = &Server::quit;
 	_map["JOIN"] = &Server::join;
+	_map["CAP"] = &Server::welcome;
+	_map["NICK"] = &Server::nick;
+	_map["PASS"] = &Server::pass;
+	_map["USER"] = &Server::user;
 }
 
 Server::~Server()
@@ -59,14 +63,15 @@ void	Server::loop()
 				if (_pollFds[i].fd == -1)
 					break ;
 				if (_pollFds[i].revents & POLLIN){
-					std::string msg = readMessage(_pollFds[i].fd);
-					std::cout << msg << std::endl;
-					std::vector<std::string> token = tokenize(msg);
-					if (_map.find(token[0]) != _map.end())
-						(this->*_map[token[0]])(i, token);
-					for (int i = 0; i < token.size(); i++){
-						std::cout << token[i] << std::endl;
-					}
+					readMessage(_pollFds[i].fd);
+					// std::string msg = readMessage(_pollFds[i].fd);
+					// std::cout << msg << std::endl;
+					// std::vector<std::string> token = tokenize(msg);
+					// if (_map.find(token[0]) != _map.end())
+					// 	(this->*_map[token[0]])(i, token);
+					// for (int i = 0; i < token.size(); i++){
+					// 	std::cout << token[i] << std::endl;
+					// }
 				}
 			}
 		}
@@ -80,18 +85,64 @@ void	Server::quit(int fd, std::vector<std::string> token){
 	std::cout << "Successfully quitted\n";
 }
 
-std::string Server::readMessage(int fd){
-	std::string msg;
+void	Server::welcome(int fd, std::vector<std::string> token){
+	std::cout << "Cap incoming\n";
+	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***";
+	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
+	std::cout << "Cap Done\n";
+}
+
+void	Server::pass(int fd, std::vector<std::string> token){
+	std::string msg = "ERROR :Closing Link: [client IP address] (Incorrect password)";
+	std::cout << "Pass incoming\n";
+	if (token[1] != _password){
+		send(fd, msg.c_str(), msg.size(), 0);
+	} else {
+		//TO DO Belki ekstra bir şeylere ihtiyaç olur
+	}
+}
+
+void	Server::nick(int fd, std::vector<std::string> token){
+	std::cout << "Nick incoming\n";
+	// NICK <nickname>
+	
+	//TO DO yeni kullanıcı oluşturulur ve nicknamei belirlenir
+	
+
+	//TO DO Kullanıcı nick değiştirmek ister
+}
+
+void	Server::user(int fd, std::vector<std::string> token) {
+	std::cout << "User incoming\n";
+	// USER <username> <hostname> <servername> <realname>
+	// realname'in başında : olmak zorunda her halükarda vectorun son elemanı burası oluyor.
+	// Genellikle hostname ve servername ignorelanıyormuş
+
+	// TO DO username ve realname kaydedilecek
+}
+
+
+void Server::readMessage(int fd){
 	char		buffer[BUFFER_SIZE];
 	memset(buffer, 0, BUFFER_SIZE);
 	while (!std::strstr(buffer, "\r\n")){
 		memset(buffer, 0, BUFFER_SIZE);
  
 		errCheck(-1, recv(fd, buffer, BUFFER_SIZE, 0), "Error receiving the message");
-		msg.append(buffer);
+		//TO DO Burada komutlar satır satır işlenecek tokenize işlemi gerçekleşecek.
+		// msg.append(buffer);
+		std::string	str(buffer);
+		while (str.find_first_of("\r\n") != std::string::npos){
+			std::vector<std::string>	tokens = tokenize(str);
+			if (_map.find(tokens[0]) != _map.end()){
+				(this->*_map[tokens[0]])(fd, tokens);
+			}else {
+				std::cout << "Couldn't process the given command: " << str << "\n";
+			}
+		}
 	}
-	return msg;
 }
+
 void    Server::serverInfo(std::string message)
 {
     time_t now = time(0);
