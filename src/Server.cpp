@@ -34,21 +34,23 @@ int Server::createSocket()
 
 	_pollFds[0].fd = _socketFd;
 	_pollFds[0].events = POLLIN;
+
 	for (int i = 1; i < USER_MAX; i++)
 		_pollFds[i].fd = -1;
 	serverInfo("ircserver listening...");
 	return _socketFd;
 }
 
-void	Server::loop()
-{
-	while (1){
+void	Server::loop() {
+	while (1)
+	{
 		errCheck(-1, poll(_pollFds, _usrCount, -1), "Poll Failed");
 		if (_pollFds[0].revents == POLLIN)
 		{
-			//New User connection
-			int clientFd = errCheck(-1, accept(_socketFd, (struct sockaddr *) &_addr, (socklen_t*)&_addrLen), "Accept Failed");
-			for (int i = 1; i < USER_MAX; i++){
+			// New User connection
+			int clientFd = errCheck(-1, accept(_socketFd, (struct sockaddr *) &_addr, \
+				(socklen_t*)&_addrLen), "Accept Failed");
+			for (int i = 1; i < USER_MAX; i++) {
 				if (_pollFds[i].fd == -1){
 					_pollFds[i].fd = clientFd;
 					_pollFds[i].events = POLLIN;
@@ -61,40 +63,50 @@ void	Server::loop()
 		{
 			for (int i = 1; i < USER_MAX; i++){
 				if (_pollFds[i].fd == -1)
-					break ;
-				if (_pollFds[i].revents & POLLIN){
+					continue;
+				if (_pollFds[i].revents & POLLIN)
 					readMessage(_pollFds[i].fd);
-					// std::string msg = readMessage(_pollFds[i].fd);
-					// std::cout << msg << std::endl;
-					// std::vector<std::string> token = tokenize(msg);
-					// if (_map.find(token[0]) != _map.end())
-					// 	(this->*_map[token[0]])(i, token);
-					// for (int i = 0; i < token.size(); i++){
-					// 	std::cout << token[i] << std::endl;
-					// }
-				}
 			}
 		}
 	}
 }
 
 void	Server::quit(int fd, std::vector<std::string> token){
+	std::cout << "QUIT Function started\n";
+	
 	close(_pollFds[fd].fd);
 	_pollFds[fd].fd = -1;
+	std::string msg = _clients[fd]->getNickName() + " successfully quitted\r\n";
+	send(fd, msg.c_str(), msg.size(), 0);
+	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++)
+	{
+		msg = _clients[fd]->getNickName() + " left the " + _clients[fd]->_channels[i]->getName() + "\r\n";
+		send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
+	}	
+	_clients.erase(fd);
 	_usrCount--;
-	std::cout << "Successfully quitted\n";
 }
 
-void	Server::welcome(int fd, std::vector<std::string> token){
-	std::cout << "Cap incoming\n";
-	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***";
+void	Server::welcome(int fd, std::vector<std::string> tokens) {
+	std::cout << "New client\n";
+	
+	Client	*newClient = new Client(fd, _port);
+
+	newClient->setPassword(tokens[4]);
+	newClient->setNickName(tokens[7]);
+	newClient->setUserName(tokens[10]);
+
+	_clients[fd] = newClient;
+
+	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***\r\n";
 	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
-	std::cout << "Cap Done\n";
 }
 
 void	Server::pass(int fd, std::vector<std::string> token){
-	std::string msg = "ERROR :Closing Link: [client IP address] (Incorrect password)";
-	std::cout << "Pass incoming\n";
+	std::cout << "PASS Function started\n";
+
+	std::string msg = "ERROR :Closing Link: [client IP address] (Incorrect password)\r\n";
 	if (token[1] != _password){
 		send(fd, msg.c_str(), msg.size(), 0);
 	} else {
@@ -103,45 +115,118 @@ void	Server::pass(int fd, std::vector<std::string> token){
 }
 
 void	Server::nick(int fd, std::vector<std::string> token){
-	std::cout << "Nick incoming\n";
-	// NICK <nickname>
-	
-	//TO DO yeni kullanıcı oluşturulur ve nicknamei belirlenir
-	
+	std::cout << "NICK Function started\n";
+	std::string msg;
 
-	//TO DO Kullanıcı nick değiştirmek ister
+	if (token.empty() || token[0].empty() || token[1].empty())
+	{
+		msg = "User with alias" + token[1] + "not found\r\n";
+		send(fd, msg.c_str(), msg.size(), 0);
+		return;
+	}
+
+	std::map<int, Client*>::iterator it;
+	for (it = _clients.begin() ; it != _clients.end() ; it++)
+	{
+		if (it->second->getNickName() == _clients[fd]->getNickName())
+		{
+			if (token[1] != _clients[fd]->getNickName())
+			{
+				msg = "[" + _clients[fd]->getNickName() + "] yeni nick: [" + token[1] + "]\r\n";
+				send(fd, msg.c_str(), msg.size(), 0);
+				it->second->setNickName(token[1]);
+			}
+			else
+			{
+				msg = "Değiştirmek istediğiniz nick şimdiki isminizden farklı olmalıdır!\r\n";
+				send(fd, msg.c_str(), msg.size(), 0);
+			}
+			break;
+		}
+	}
 }
 
 void	Server::user(int fd, std::vector<std::string> token) {
-	std::cout << "User incoming\n";
-	// USER <username> <hostname> <servername> <realname>
-	// realname'in başında : olmak zorunda her halükarda vectorun son elemanı burası oluyor.
-	// Genellikle hostname ve servername ignorelanıyormuş
-
-	// TO DO username ve realname kaydedilecek
+	std::cout << "USER Function started\n";
+	
+	std::string msg;
+	
+	if (token.empty() || token[0].empty() || token[1].empty())
+	{
+		msg = "Username bulunamadı!\r\n";
+		send(fd, msg.c_str(), msg.size(), 0);
+		return ;
+	}
 }
 
+void	Server::join(int fd, std::vector<std::string> token)
+{
+	std::cout << "JOIN Function started.\n";
+
+	std::string	msg;
+	if (token.empty() || token[1].empty()) {
+		msg = "JOIN komutunda yeterli argüman yok!\r\n";
+		send(fd, msg.c_str(), msg.size(), 0);
+		return ;
+	}
+
+	if (_channels.find(token[1]) == _channels.end())
+	{
+		if (token[1][0] != '#')
+			token[1] = "#" + token[1];
+		msg = token[1] + " kanalı oluşturuluyor\r\n";
+		send(fd, msg.c_str(), msg.size(), 0);
+		_channels[token[1]] = new Channel(_clients[fd], token[1], token.size() > 1 ? token[2] : "");
+	}
+
+	if (_channels[token[1]]->getClientCount() >= _channels[token[1]]->getMaxClientCount())
+		msg = "Kanaldaki kullanıcı sayısı doldu!\r\n";
+	else if (!(_channels[token[1]]->getPassword().empty()) && _channels[token[1]]->getPassword() != token[2])
+		msg = "Kanala girilemedi, parola hatası!\r\n";
+	else
+	{
+		if (_channels[token[1]]->getClientCount() == 0)
+		{
+			// Admin girişi
+			msg = "Admin girişi\r\n";
+			_channels[token[1]]->setAdmin(_clients[fd]);
+			_channels[token[1]]->_channelClients.push_back(_clients[fd]);
+			_clients[fd]->_channels.push_back(_channels[token[1]]);
+		}
+		else if (_channels[token[1]]->getPassword().empty() || _channels[token[1]]->getPassword() == token[2])
+		{
+			// Üye girişi
+			msg = "Üye girişi\r\n";
+			_channels[token[1]]->_channelClients.push_back(_clients[fd]);
+			_clients[fd]->_channels.push_back(_channels[token[1]]);
+		}
+	}
+	send(fd, msg.c_str(), msg.size(), 0);
+}
 
 void Server::readMessage(int fd){
 	char		buffer[BUFFER_SIZE];
+	
 	memset(buffer, 0, BUFFER_SIZE);
-	while (!std::strstr(buffer, "\r\n")){
+	while (!std::strstr(buffer, "\r\n"))
+	{
 		memset(buffer, 0, BUFFER_SIZE);
- 
 		errCheck(-1, read(fd, buffer, BUFFER_SIZE), "Error receiving the message");
-		//TO DO Burada komutlar satır satır işlenecek tokenize işlemi gerçekleşecek.
-		// msg.append(buffer);
 		std::string	str(buffer);
-		while (str.find_first_of("\r\n") != std::string::npos){
-			std::vector<std::string>	tokens = tokenize(str);
-			if (_map.find(tokens[0]) != _map.end()){
-				(this->*_map[tokens[0]])(fd, tokens);
-			}else {
-				// std::cout << "Couldn't process the given command: " << str << "\n";
+		while (str.find_first_of("\r\n") != std::string::npos)
+		{
+			std::vector<std::string> tokens = tokenize(str);
+
+			if (std::strstr(tokens[0].c_str(), "CAP"))
+			{
+				welcome(fd, tokens);
+				return ;
 			}
+			else if (_map.find(tokens[0]) != _map.end())
+				(this->*_map[tokens[0]])(fd, tokens);
+			
 			int i = str.find_first_of("\r\n");
 			str = str.substr(i + 1);
-			// std::cout << str << std::endl;
 		}
 	}
 }

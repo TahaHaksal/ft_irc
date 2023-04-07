@@ -25,14 +25,15 @@ int	errCheck(int cnd, int res, std::string msg)
 
 std::vector<std::string> tokenize(std::string &msg) {
     std::vector<std::string> tokens;
-    std::istringstream iss(msg);
     std::string token;
-	int	i = 1;
+	int	i = 0;
 
-    while (std::getline(iss, token, ' ') || std::getline(iss, token, '\r') || std::getline(iss, token, '\n')){
-		tokens.push_back(token);
-		if (token[0] == ':')
-			break ;
+    for (int i = 0 ; i < msg.size() ; i++){
+		if (msg[i] > 32)
+			token += msg[i];
+		else{
+			tokens.push_back(token);
+			token = "";}
 	}
     return tokens;
 }
