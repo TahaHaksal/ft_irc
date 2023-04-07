@@ -1,42 +1,36 @@
 #include "../headers/Server.hpp"
 
-Server::Server(char **av) : _usrCount(1)
-{
+Server::Server(char **av) : _usrCount(1) {
     _port = std::atoi(av[1]);
     _password = av[2];
+
 	memset((char *)&_addr, 0, sizeof(_addr));
 	_addr.sin_family = AF_INET;
 	_addr.sin_addr.s_addr = INADDR_ANY;
 	_addr.sin_port = htons(_port);
-	_addrLen = sizeof(_addr);
-    _socketFd = createSocket();
-	_map["QUIT"] = &Server::quit;
-	_map["JOIN"] = &Server::join;
-	_map["CAP"] = &Server::welcome;
-	_map["NICK"] = &Server::nick;
-	_map["PASS"] = &Server::pass;
-	_map["USER"] = &Server::user;
+    
+	_socketFd = createSocket();
+
+	_commands["QUIT"] = &Server::quit;
+	_commands["JOIN"] = &Server::join;
+	_commands["CAP"] = &Server::welcome;
+	_commands["NICK"] = &Server::nick;
+	_commands["PASS"] = &Server::pass;
+	_commands["USER"] = &Server::user;
 }
 
-Server::~Server()
-{
+Server::~Server() {}
 
-}
-
-int Server::createSocket()
-{
+int Server::createSocket() {
 	int t = 1;
 
 	_socketFd = errCheck(-1, socket(AF_INET, SOCK_STREAM, 0), "Error: failed to create socket.");
 	errCheck(-1, setsockopt(_socketFd, SOL_SOCKET, SO_REUSEADDR, &t, sizeof(t)), "Error: failed to setsockopt.");
-	errCheck(-1, bind(_socketFd, (struct sockaddr *) &_addr, (socklen_t)_addrLen), "Error: failed to bind.");
+	errCheck(-1, bind(_socketFd, (struct sockaddr *) &_addr, (socklen_t)sizeof(_addr)), "Error: failed to bind.");
 	errCheck(-1, listen(_socketFd, 1024), "Error: failed to listen.");
 
-	_pollFds[0].fd = _socketFd;
-	_pollFds[0].events = POLLIN;
+	_pollfds.push_back((pollfd){_socketFd, POLLIN, 0});
 
-	for (int i = 1; i < USER_MAX; i++)
-		_pollFds[i].fd = -1;
 	serverInfo("ircserver listening...");
 	return _socketFd;
 }
@@ -44,77 +38,164 @@ int Server::createSocket()
 void	Server::loop() {
 	while (1)
 	{
-		errCheck(-1, poll(_pollFds, _usrCount, -1), "Poll Failed");
-		if (_pollFds[0].revents == POLLIN)
+		errCheck(-1, poll(_pollfds.begin().base(), _pollfds.size(), -1), "Poll Failed");
+
+		for (int i = 0 ; i < _pollfds.size() ; i++)
 		{
-			// New User connection
-			int clientFd = errCheck(-1, accept(_socketFd, (struct sockaddr *) &_addr, \
-				(socklen_t*)&_addrLen), "Accept Failed");
-			for (int i = 1; i < USER_MAX; i++) {
-				if (_pollFds[i].fd == -1){
-					_pollFds[i].fd = clientFd;
-					_pollFds[i].events = POLLIN;
-					_usrCount++;
+			if (_pollfds[i].revents == POLLIN)
+			{
+				if (_pollfds[i].fd == _socketFd)
+				{
+					newConnection();
 					break ;
 				}
+				readMessage(_pollfds[i].fd);
 			}
-		}
-		else
-		{
-			for (int i = 1; i < USER_MAX; i++){
-				if (_pollFds[i].fd == -1)
-					continue;
-				if (_pollFds[i].revents & POLLIN)
-					readMessage(_pollFds[i].fd);
+
+			if (_pollfds[i].revents == POLLHUP)
+			{
+				newDisconnection(_pollfds[i].fd);
+				break ;
 			}
 		}
 	}
 }
 
-void	Server::quit(int fd, std::vector<std::string> token){
+void	Server::newConnection()
+{
+	int fd;
+	sockaddr_in s_address = {};
+	socklen_t s_size = sizeof(s_address);
+
+	fd = accept(_socketFd, (sockaddr *) &s_address, &s_size);
+	if (fd < 0)
+		{std::cerr << "Error: accept failed!\n"; return ;}
+
+	_pollfds.push_back((pollfd){fd, POLLIN, 0});
+
+	char hostname[NI_MAXHOST];
+	if (getnameinfo((struct sockaddr *) &s_address, sizeof(s_address), hostname, NI_MAXHOST, NULL, 0, NI_NUMERICSERV) != 0)
+		{std::cerr << "Error: failed to get client hostname!\n"; return ;}
+
+	Client *client = new Client(fd, ntohs(s_address.sin_port));
+	_clients.insert(std::make_pair(fd, client));
+
+	char message[1000];
+	serverInfo(message);
+	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***\r\n";
+	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
+}
+
+void	Server::newDisconnection(int fd)
+{
+	try {
+		Client *client = _clients.at(fd);
+		client->leave();
+
+		char message[1000];
+		serverInfo(message);
+
+		_clients.erase(fd);
+
+		for (std::vector<pollfd>::iterator it = _pollfds.begin(); it != _pollfds.end(); it++) {
+			if (it->fd != fd)
+				continue;
+			_pollfds.erase(it);
+			close(fd);
+			break;
+		}
+		delete client;
+	}
+	catch (const std::out_of_range &ex) {}
+}
+
+void Server::readMessage(int fd) {
+	std::string	message;
+	char buffer[100];
+
+	memset(buffer, 0, 100);
+	while (!std::strstr(buffer, "\r\n"))
+	{
+		memset(buffer, 0, 100);
+		if (recv(fd, buffer, 100, 0) < 0)
+			std::cerr << "Error: Failed recv function!\n";
+		message.append(buffer);
+	}
+	
+	std::stringstream newMessage(message);
+	std::string temp;
+
+	while (std::getline(newMessage, temp))
+	{
+		temp = temp.substr(0, temp.length() - (temp[temp.length() - 1] == '\r')); // Komut sonu değilse olduğu gibi al
+		std::string commandName = temp.substr(0, temp.find(' ')); // ana komut ismini alıyorum (boşluktan önce)
+
+		std::vector<std::string> arguments; // Komutların argümanlarını bunda tutuyorum
+
+		std::string buf;
+		std::stringstream args(temp.substr(commandName.length(), temp.length()));
+
+		while (args >> buf)
+			arguments.push_back(buf);
+		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
+
+		if (_commands.find(arguments[0]) != _commands.end())
+			(this->*_commands[arguments[0]])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
+		else
+			std::cout << "Error: command not found!\n";
+	}
+}
+
+void    Server::serverInfo(std::string message)
+{
+    time_t now = time(0);
+	tm *ltm = localtime(&now);
+
+	std::cout << ltm->tm_mday << "." << ltm->tm_mon+1 << "." << ltm->tm_year+1900;
+  	std::cout << " " << ltm->tm_hour << ":" << ltm->tm_min << ":" << ltm->tm_sec << std::endl;
+	std::cout << "[" << message << "]" << std::endl;
+}
+
+void	Server::quit(int fd, std::vector<std::string> token) {
 	std::cout << "QUIT Function started\n";
 	
-	close(_pollFds[fd].fd);
-	_pollFds[fd].fd = -1;
+	close(_pollfds[fd].fd);
+	_pollfds[fd].fd = -1;
 	std::string msg = _clients[fd]->getNickName() + " successfully quitted\r\n";
 	send(fd, msg.c_str(), msg.size(), 0);
-	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++)
+	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++) // client serverdan ayrılırken bulunduğu tüm kanallardan ayrılmalı.
 	{
 		msg = _clients[fd]->getNickName() + " left the " + _clients[fd]->_channels[i]->getName() + "\r\n";
 		send(fd, msg.c_str(), msg.size(), 0);
 		_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
 	}	
-	_clients.erase(fd);
+	_clients.erase(fd); // server'dan kullanıcıyı sildim.
 	_usrCount--;
 }
 
 void	Server::welcome(int fd, std::vector<std::string> tokens) {
-	std::cout << "New client\n";
+	std::cout << "WELCOME Function client\n";
 	
 	Client	*newClient = new Client(fd, _port);
-
-	newClient->setPassword(tokens[4]);
-	newClient->setNickName(tokens[7]);
-	newClient->setUserName(tokens[10]);
-
 	_clients[fd] = newClient;
-
 	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***\r\n";
 	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
 }
 
-void	Server::pass(int fd, std::vector<std::string> token){
+void	Server::pass(int fd, std::vector<std::string> token) {
 	std::cout << "PASS Function started\n";
 
 	std::string msg = "ERROR :Closing Link: [client IP address] (Incorrect password)\r\n";
-	if (token[1] != _password){
-		send(fd, msg.c_str(), msg.size(), 0);
-	} else {
-		//TO DO Belki ekstra bir şeylere ihtiyaç olur
+	if (token.size() < 2) // Sadece PASS
+		msg = "Error: Password information is missing\r\n";
+	if (std::strstr(this->getPassword(), token[1].c_str())) { // Şifreyi bilen birisi server'a girebilir ileride status durumu olacak, şimdilik 1 ise server'a girmiştir.
+		_clients[fd]->setStatus(1);
+		return ;
 	}
+	send(fd, msg.c_str(), msg.size(), 0);
 }
 
-void	Server::nick(int fd, std::vector<std::string> token){
+void	Server::nick(int fd, std::vector<std::string> token) {
 	std::cout << "NICK Function started\n";
 	std::string msg;
 
@@ -159,8 +240,7 @@ void	Server::user(int fd, std::vector<std::string> token) {
 	}
 }
 
-void	Server::join(int fd, std::vector<std::string> token)
-{
+void	Server::join(int fd, std::vector<std::string> token) {
 	std::cout << "JOIN Function started.\n";
 
 	std::string	msg;
@@ -205,54 +285,3 @@ void	Server::join(int fd, std::vector<std::string> token)
 	std::cout << "Kullanıcı sayısı:	" << _channels[token[1]]->getClientCount() << std::endl;
 	send(fd, msg.c_str(), msg.size(), 0);
 }
-
-void Server::readMessage(int fd){
-	char		buffer[BUFFER_SIZE];
-	
-	memset(buffer, 0, BUFFER_SIZE);
-	while (!std::strstr(buffer, "\r\n"))
-	{
-		memset(buffer, 0, BUFFER_SIZE);
-		errCheck(-1, recv(fd, buffer, BUFFER_SIZE, 0), "Error receiving the message");
-		std::string	str(buffer);
-		while (str.find_first_of("\r\n") != std::string::npos)
-		{
-			std::vector<std::string> tokens = tokenize(str);
-
-			if (std::strstr(tokens[0].c_str(), "CAP"))
-			{
-				welcome(fd, tokens);
-				return ;
-			}
-			else if (_map.find(tokens[0]) != _map.end())
-				(this->*_map[tokens[0]])(fd, tokens);
-			
-			int i = str.find_first_of("\r\n");
-			str = str.substr(i + 1);
-		}
-	}
-}
-
-void    Server::serverInfo(std::string message)
-{
-    time_t now = time(0);
-	tm *ltm = localtime(&now);
-
-	std::cout << ltm->tm_mday << "." << ltm->tm_mon+1 << "." << ltm->tm_year+1900;
-  	std::cout << " " << ltm->tm_hour << ":" << ltm->tm_min << ":" << ltm->tm_sec << std::endl;
-	std::cout << "[" << message << "]" << std::endl;
-}
-
-//Getters and Setters
-
-int                 Server::getPort() {return _port;}
-int                 Server::getServerfd() {return _socketFd;}
-char*               Server::getPassword() {return _password;}
-int			        Server::getAddrlen() {return _addrLen;}
-struct sockaddr_in  Server::getAddr() {return _addr;}
-
-void                Server::setPort(int port){_port = port;}
-void                Server::setServerfd(int server_fd){_socketFd = server_fd;}
-void                Server::setPassword(char* password){_password = password;}
-void                Server::setAddrlen(int addrLen){_addrLen = addrLen;}
-void                Server::setAddr(struct sockaddr_in addr){_addr = addr;}
