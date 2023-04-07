@@ -178,7 +178,6 @@ void	Server::join(int fd, std::vector<std::string> token)
 		send(fd, msg.c_str(), msg.size(), 0);
 		_channels[token[1]] = new Channel(_clients[fd], token[1], token.size() > 1 ? token[2] : "");
 	}
-
 	if (_channels[token[1]]->getClientCount() >= _channels[token[1]]->getMaxClientCount())
 		msg = "Kanaldaki kullanıcı sayısı doldu!\r\n";
 	else if (!(_channels[token[1]]->getPassword().empty()) && _channels[token[1]]->getPassword() != token[2])
@@ -192,6 +191,7 @@ void	Server::join(int fd, std::vector<std::string> token)
 			_channels[token[1]]->setAdmin(_clients[fd]);
 			_channels[token[1]]->_channelClients.push_back(_clients[fd]);
 			_clients[fd]->_channels.push_back(_channels[token[1]]);
+			_channels[token[1]]->setClientCount(_channels[token[1]]->getClientCount() + 1);
 		}
 		else if (_channels[token[1]]->getPassword().empty() || _channels[token[1]]->getPassword() == token[2])
 		{
@@ -199,8 +199,10 @@ void	Server::join(int fd, std::vector<std::string> token)
 			msg = "Üye girişi\r\n";
 			_channels[token[1]]->_channelClients.push_back(_clients[fd]);
 			_clients[fd]->_channels.push_back(_channels[token[1]]);
+			_channels[token[1]]->setClientCount(_channels[token[1]]->getClientCount() + 1);
 		}
 	}
+	std::cout << "Kullanıcı sayısı:	" << _channels[token[1]]->getClientCount() << std::endl;
 	send(fd, msg.c_str(), msg.size(), 0);
 }
 
@@ -211,7 +213,7 @@ void Server::readMessage(int fd){
 	while (!std::strstr(buffer, "\r\n"))
 	{
 		memset(buffer, 0, BUFFER_SIZE);
-		errCheck(-1, read(fd, buffer, BUFFER_SIZE), "Error receiving the message");
+		errCheck(-1, recv(fd, buffer, BUFFER_SIZE, 0), "Error receiving the message");
 		std::string	str(buffer);
 		while (str.find_first_of("\r\n") != std::string::npos)
 		{
