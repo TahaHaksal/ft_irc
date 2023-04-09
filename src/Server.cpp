@@ -11,12 +11,17 @@ Server::Server(char **av) : _usrCount(0) {
     
 	_socketFd = createSocket();
 
+	_commands["CAP"] = &Server::welcome;
 	_commands["QUIT"] = &Server::quit;
 	_commands["JOIN"] = &Server::join;
-	_commands["CAP"] = &Server::welcome;
 	_commands["NICK"] = &Server::nick;
 	_commands["PASS"] = &Server::pass;
 	_commands["USER"] = &Server::user;
+	_commands["KICK"] = &Server::kick;
+	_commands["PART"] = &Server::part;
+	_commands["PING"] = &Server::ping;
+	_commands["PONG"] = &Server::pong;
+	_commands["NOTICE"] = &Server::notice;
 }
 
 Server::~Server() {}
@@ -105,8 +110,8 @@ void Server::readMessage(int fd) {
 			arguments.push_back(buf);
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
 
-		// for (std::string args : arguments)
-		// 	std::cout << args << std::endl;
+		for (std::string args : arguments)
+			std::cout << args << std::endl;
 
 		if (_commands.find(arguments[0]) != _commands.end())
 			(this->*_commands[arguments[0]])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
@@ -115,8 +120,7 @@ void Server::readMessage(int fd) {
 	}
 }
 
-void    Server::serverInfo(std::string message)
-{
+void    Server::serverInfo(std::string message) {
     time_t now = time(0);
 	tm *ltm = localtime(&now);
 
@@ -125,156 +129,9 @@ void    Server::serverInfo(std::string message)
 	std::cout << "[" << message << "]" << std::endl;
 }
 
-void	Server::quit(int fd, std::vector<std::string> token) { // send komutları quit fonksiyonuna gelir gelmez kullanıcının fd'si kapandığı için hata veriyor, neden kapanıyor?
-	std::cout << "QUIT Function started\n";
-
-	Client *clientPtr = _clients.at(fd);
-	std::string msg;
-
-	// Kullanıcı /quit ile çıkarken argüman olarak ayrılık mesajı da verebilir Verdiği argümanları ' ' ile birleştirip client'e göndermeliyiz.
-	// msg = _clients[fd]->getNickName() + " successfully quitted\r\n"; send(fd, msg.c_str(), msg.size(), 0);
-
-	for (int i = 0 ; i < _pollfds.size() ; i++)
-	{
-		if (fd == _pollfds[i].fd)
-		{
-			close(_pollfds[i].fd);
-			_pollfds.erase(_pollfds.begin() + i);
-		}
-	}
-	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++) // client serverdan ayrılırken bulunduğu tüm kanallardan ayrılmalı.
-	{
-		msg = _clients[fd]->getNickName() + " left the " + _clients[fd]->_channels[i]->getName() + "\r\n";
-		std::cout << msg;
-		_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
-		if (_clients[fd]->_channels[i]->getClientCount() == 0)
-		{
-			std::cout << "Kanal Siliniyor...\n";
-			_channels.erase(_channels.find(_clients[fd]->_channels[i]->getName()));
-		}
-		// send(fd, msg.c_str(), msg.size(), 0);
-	}
-	_clients.erase(fd); // server'dan kullanıcıyı sildim.
-	delete clientPtr;
-	_usrCount--;
-}
-
 void	Server::welcome(int fd, std::vector<std::string> tokens) {
 	// std::cout << "WELCOME Function client\n";
 
 	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***\r\n";
 	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
-}
-
-void	Server::pass(int fd, std::vector<std::string> token) {
-	// std::cout << "PASS Function started\n";
-
-	std::string msg = "ERROR :Closing Link: [client IP address] (Incorrect password)\r\n";
-	if (token.size() < 2) // Sadece PASS
-		msg = "Error: Password information is missing\r\n";
-	if (std::strstr(this->getPassword(), token[1].c_str())) { // Şifreyi bilen birisi server'a girebilir ileride status durumu olacak, şimdilik 1 ise server'a girmiştir.
-		_clients[fd]->setStatus(1);
-		return ;
-	}
-	send(fd, msg.c_str(), msg.size(), 0);
-}
-
-void	Server::nick(int fd, std::vector<std::string> token) {
-	// std::cout << "NICK Function started\n";
-	std::string msg;
-
-	if (token.empty() || token[0].empty() || token[1].empty())
-	{
-		msg = "User with alias" + token[1] + "not found\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
-		return;
-	}
-
-	std::map<int, Client*>::iterator it;
-	for (it = _clients.begin() ; it != _clients.end() ; it++)
-	{
-		if (it->second->getNickName() == _clients[fd]->getNickName())
-		{
-			if (token[1] == _clients[fd]->getNickName())
-			{
-				msg = "Değiştirmek istediğiniz nick şimdiki isminizden farklı olmalıdır!\r\n";
-				send(fd, msg.c_str(), msg.size(), 0);
-			}
-			else
-			{
-				msg = "[" + _clients[fd]->getNickName() + "] yeni nick: [" + token[1] + "]\r\n";
-				send(fd, msg.c_str(), msg.size(), 0);
-				it->second->setNickName(token[1]);
-			}
-			break;
-		}
-	}
-}
-
-void	Server::user(int fd, std::vector<std::string> token) {
-	// std::cout << "USER Function started\n";
-
-	std::string msg;
-
-	if (token.empty() || token[0].empty() || token[1].empty())
-	{
-		msg = "Username bulunamadı!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
-		return ;
-	}
-}
-
-void	Server::join(int fd, std::vector<std::string> token) {
-	// std::cout << "JOIN Function started.\n";
-
-	std::string	msg;
-	if (token.empty() || token[1].empty()) {
-		msg = "JOIN komutunda yeterli argüman yok!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
-		return ;
-	}
-
-	if (token[1][0] != '#')
-		token[1] = "#" + token[1];
-	
-	if (token[1].size() < 2) // "/join #" kontrolü
-	{
-		msg = "Kanal belirtmediniz!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
-		return ;
-	}
-	
-	if (_channels.find(token[1]) == _channels.end())
-	{
-		// Admin girişi, kanal oluşturuluyor.
-		msg = token[1] + " kanalı oluşturuluyor\r\n"; send(fd, msg.c_str(), msg.size(), 0);
-		msg = "Admin girişi\r\n"; send(fd, msg.c_str(), msg.size(), 0);
-		_channels[token[1]] = new Channel(_clients[fd], token[1], token.size() > 2 ? token[2] : "");
-		_clients[fd]->_channels.push_back(_channels[token[1]]);
-		return ;
-	}
-
-	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++)
-	{
-		if (_clients[fd]->_channels[i]->getName() == token[1])
-		{
-			msg = "Zaten bu kanaldasınız!\r\n";
-			send(fd, msg.c_str(), msg.size(), 0);
-			return ;
-		}
-	}
-	if (_channels[token[1]]->getClientCount() >= _channels[token[1]]->getMaxClientCount())
-		msg = "Kanaldaki kullanıcı sayısı doldu!\r\n";
-	else if (!(_channels[token[1]]->getPassword().empty()) && _channels[token[1]]->getPassword() != token[2])
-		msg = "Kanala girilemedi, parola hatası!\r\n";
-	else
-	{
-		// Üye girişi
-		msg = "Üye girişi\r\n";
-		_channels[token[1]]->_channelClients.push_back(_clients[fd]);
-		_clients[fd]->_channels.push_back(_channels[token[1]]);
-		_channels[token[1]]->setClientCount(_channels[token[1]]->getClientCount() + 1);
-	}
-	std::cout << "Kullanıcı sayısı:	" << _channels[token[1]]->getClientCount() << std::endl;
-	send(fd, msg.c_str(), msg.size(), 0);
 }
