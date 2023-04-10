@@ -46,6 +46,13 @@ void	exitErr(std::string msg) {
 	exit(1);
 }
 
+std::string toUpper(std::string str) {
+    for (size_t i = 0; i < str.length(); ++i) {
+        str[i] = toupper(str[i]);
+    }
+    return str;
+}
+
 int	errCheck(int cnd, int res, std::string msg) {
 	if (cnd == res)
 		exitErr(msg);
