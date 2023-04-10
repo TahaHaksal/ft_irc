@@ -1,2 +1,2 @@
-build/commands/*
+build/commands/*.o
 ft_irc
