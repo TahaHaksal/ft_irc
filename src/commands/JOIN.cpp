@@ -59,18 +59,18 @@ void	Server::join(int fd, std::vector<std::string> token) {
 		_clients[fd]->_channels.push_back(_channels[token[1]]);
 
 
-#define RPL_NAMREPLY(source, channel, users)	"353 " + source + " = " + channel + " :" + users
-#define RPL_ENDOFNAMES(source, channel)			"366 " + source + " " + channel + " :End of /NAMES list."
-#define RPL_JOIN(source, channel)					":" + source + " JOIN :" + channel
+	#define RPL_NAMREPLY(source, channel, users)	"353 " + source + " = " + channel + " :" + users
+	#define RPL_ENDOFNAMES(source, channel)			"366 " + source + " " + channel + " :End of /NAMES list."
+	#define RPL_JOIN(source, channel)					":" + source + " JOIN :" + channel
 
-std::string users;
-for (int i = 0 ; i < _channels[token[1]]->_channelClients.size() ; i++)
-	users.append(_channels[token[1]]->_channelClients[i]->getNickName() + " ");
+	std::string users;
+	for (size_t i = 0 ; i < _channels[token[1]]->_channelClients.size() ; i++)
+		users.append(_channels[token[1]]->_channelClients[i]->getNickName() + " ");
 
-reply(fd, RPL_NAMREPLY(_clients[fd]->getNickName(), token[1], users), _clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName());
-reply(fd, RPL_ENDOFNAMES(_clients[fd]->getNickName(), token[1]), _clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName());
+	reply(fd, RPL_NAMREPLY(_clients[fd]->getNickName(), token[1], users), _clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName());
+	reply(fd, RPL_ENDOFNAMES(_clients[fd]->getNickName(), token[1]), _clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName());
 
-broadcast(fd, _channels[token[1]]->_channelClients, RPL_JOIN(getJoinName(_clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName()), token[1]));
+	broadcast(fd, _channels[token[1]]->_channelClients, RPL_JOIN(getJoinName(_clients[fd]->getUserName(), _clients[fd]->getHostName(), _clients[fd]->getNickName()), token[1]));
 
 
 
@@ -79,7 +79,7 @@ broadcast(fd, _channels[token[1]]->_channelClients, RPL_JOIN(getJoinName(_client
 		return ;
 	}
 
-	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++)
+	for (size_t i = 0 ; i < _clients[fd]->_channels.size() ; i++)
 	{
 		if (_clients[fd]->_channels[i]->getName() == token[1])
 		{

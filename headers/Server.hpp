@@ -2,6 +2,8 @@
 #include "Client.hpp"
 
 class Server {
+    public:
+        typedef std::map<std::string, void(Server::*)(int, std::vector<std::string>)> command_map;
     private:
         int                         _port;
         int                         _socketFd;
@@ -13,7 +15,7 @@ class Server {
         std::vector<pollfd>		            _pollfds;
         std::map<int, Client *>             _clients;
         std::map<std::string, Channel *>    _channels;
-        std::map<std::string, void(Server::*)(int, std::vector<std::string>)> _commands;
+        command_map _commands;
 
     public:
         Server(char **av);
@@ -34,8 +36,9 @@ class Server {
         void                readMessage(int fd);
         void                newConnection();
         void                serverInfo(std::string message);
+        std::string         getIPv4();
         
-        void                welcome(int fd, std::vector<std::string> token);
+        void                cap(int fd, std::vector<std::string> token);
         void                quit(int fd, std::vector<std::string> token);
         void                join(int fd, std::vector<std::string> token);
         void                pass(int fd, std::vector<std::string> token);
