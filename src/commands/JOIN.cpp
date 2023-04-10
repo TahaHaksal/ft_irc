@@ -54,10 +54,12 @@ void	Server::join(int fd, std::vector<std::string> token) {
 	else
 	{
 		// Üye girişi
-		msg = "Üye girişi\r\n";
+		// msg = "Üye girişi\r\n";
 		_channels[token[1]]->_channelClients.push_back(_clients[fd]);
 		_clients[fd]->_channels.push_back(_channels[token[1]]);
 		_channels[token[1]]->setClientCount(_channels[token[1]]->getClientCount() + 1);
+		msg = ":" + _clients[fd]->getPrefixName() + " JOIN :" + token[1];
+
 	}
 	std::cout << "Kullanıcı sayısı:	" << _channels[token[1]]->getClientCount() << std::endl;
 	send(fd, msg.c_str(), msg.size(), 0);

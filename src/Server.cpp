@@ -129,20 +129,3 @@ void    Server::serverInfo(std::string message) {
   	std::cout << " " << ltm->tm_hour << ":" << ltm->tm_min << ":" << ltm->tm_sec << std::endl;
 	std::cout << "[" << message << "]" << std::endl;
 }
-
-/**
- * @brief Checks the users if any nicks match the given one
- * 
- * @param nick nickname of the user
- * @return true 
- * @return false 
- */
-int	Server::checkUsr(std::string nick)
-{
-	for (size_t i = 0; i < _clients.size(); i++)
-	{
-		if (_clients[i]->getNickName() == nick)
-			return i;
-	}
-	return -1;
-}

@@ -36,7 +36,8 @@ class Server {
         void                readMessage(int fd);
         void                newConnection();
         void                serverInfo(std::string message);
-        int 	            checkUsr(std::string nick);
+        int                 findUserByName(std::string name);
+        void                broadcast(const std::vector<Client *> &clientList, std::string msg, int excludeFd);
         
         void                cap(int fd, std::vector<std::string> token);
         void                quit(int fd, std::vector<std::string> token);
