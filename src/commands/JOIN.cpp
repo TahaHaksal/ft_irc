@@ -38,7 +38,7 @@ _clients[fd]->casting(fd, _channels[token[1]]->_channelClients, RPL_JOIN(_client
 		return ;
 	}
 
-	for (int i = 0 ; i < _clients[fd]->_channels.size() ; i++)
+	for (size_t i = 0 ; i < _clients[fd]->_channels.size() ; i++)
 	{
 		if (_clients[fd]->_channels[i]->getName() == token[1])
 		{

@@ -18,7 +18,7 @@ Channel::~Channel()
 
 void    Channel::leftTheChannel(Client *client)
 {
-    for (int i = 0 ; i < _channelClients.size() ; i++)
+    for (size_t i = 0 ; i < _channelClients.size() ; i++)
     {
         if (_channelClients[i] == client)
         {

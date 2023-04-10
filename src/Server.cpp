@@ -11,7 +11,7 @@ Server::Server(char **av) : _usrCount(0) {
     
 	_socketFd = createSocket();
 
-	_commands["CAP"] = &Server::welcome;
+	_commands["CAP"] = &Server::cap;
 	_commands["QUIT"] = &Server::quit;
 	_commands["JOIN"] = &Server::join;
 	_commands["NICK"] = &Server::nick;
@@ -44,7 +44,7 @@ void	Server::loop() {
 	while (1) {		
 		errCheck(-1, poll(_pollfds.begin().base(), _pollfds.size(), -1), "Poll Failed");
 		
-		for (int i = 0 ; i < _pollfds.size() ; i++)
+		for (size_t i = 0 ; i < _pollfds.size() ; i++)
 		{
 			if (_pollfds[i].revents & POLLIN)
 			{
@@ -110,7 +110,7 @@ void Server::readMessage(int fd) {
 			arguments.push_back(buf);
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
 
-		for (int i = 0 ; i < arguments.size() ; i++)
+		for (size_t i = 0 ; i < arguments.size() ; i++)
 			std::cout << arguments[i] << std::endl;
 
 		if (_commands.find(arguments[0]) != _commands.end())
@@ -129,9 +129,27 @@ void    Server::serverInfo(std::string message) {
 	std::cout << "[" << message << "]" << std::endl;
 }
 
-void	Server::welcome(int fd, std::vector<std::string> tokens) {
-	// std::cout << "WELCOME Function client\n";
+std::string         Server::getIPv4(){
+	struct addrinfo hints, *res;
+    int status;
+    char ipstr[INET_ADDRSTRLEN];
+    std::string result = "";
 
-	std::string welcome_msg = "***Welcome to mhaksal and dkarhan's irc server***\r\n";
-	errCheck(-1, send(fd, welcome_msg.c_str(), welcome_msg.size(), 0), "Send failed");
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((status = getaddrinfo("localhost", NULL, &hints, &res)) != 0) {
+        std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
+        return "";
+    }
+
+    struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
+    void *addr = &(ipv4->sin_addr);
+    inet_ntop(res->ai_family, addr, ipstr, sizeof ipstr);
+    result = ipstr;
+
+    freeaddrinfo(res);
+
+    return result;
 }
