@@ -49,5 +49,12 @@ class Server {
         void                ping(int fd, std::vector<std::string> token);
         void                pong(int fd, std::vector<std::string> token);
         void                notice(int fd, std::vector<std::string> token);
+        void                mode(int fd, std::vector<std::string> token);
+
+        void casting(int _fd, std::vector<Client *> _clients, const std::string &message)
+        {
+            for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+                ft_write(_fd, message);
+        }
 
 };
