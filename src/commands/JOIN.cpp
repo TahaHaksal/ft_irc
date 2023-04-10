@@ -57,6 +57,10 @@ void	Server::join(int fd, std::vector<std::string> token) {
 		_channels[token[1]]->_channelClients.push_back(_clients[fd]);
 		_clients[fd]->_channels.push_back(_channels[token[1]]);
 		_channels[token[1]]->setClientCount(_channels[token[1]]->getClientCount() + 1);
+
+		_clients[fd]->clientMsgSender(fd, RPL_NAMREPLY(_clients[fd]->getNickName(), token[1], _channels[token[1]]->getUsers()));
+		_clients[fd]->clientMsgSender(fd, RPL_ENDOFNAMES(_clients[fd]->getNickName(), token[1]));
+		_clients[fd]->casting(fd, _channels[token[1]]->_channelClients, RPL_JOIN(_clients[fd]->getPrefixName(), token[1]));
 	}
 	std::cout << "Kullanıcı sayısı:	" << _channels[token[1]]->getClientCount() << std::endl;
 	send(fd, msg.c_str(), msg.size(), 0);

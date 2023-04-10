@@ -23,6 +23,7 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["PONG"] = &Server::pong;
 	_commands["NOTICE"] = &Server::notice;
 	_commands["MODE"] = &Server::notice;
+	_commands["WHO"] = &Server::who;
 }
 
 Server::~Server() {}
@@ -111,8 +112,8 @@ void Server::readMessage(int fd) {
 			arguments.push_back(buf);
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
 
-		// for (size_t i = 0 ; i < arguments.size() ; i++)
-			// std::cout << arguments[i] << std::endl;
+		for (size_t i = 0 ; i < arguments.size() ; i++)
+			std::cout << arguments[i] << std::endl;
 
 		if (_commands.find(arguments[0]) != _commands.end())
 			(this->*_commands[arguments[0]])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
