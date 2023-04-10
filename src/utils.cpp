@@ -32,8 +32,7 @@
 #define RPL_KICK(source, channel, target, reason)	":" + source + " KICK " + channel + " " + target + " :" + reason
 #define RPL_MODE(source, channel, modes, args)		":" + source + " MODE " + channel + " " + modes + " " + args
 
-void    serverInfo(const std::string &message)
-{
+void    serverInfo(const std::string &message) {
 	time_t now = time(0);
 	tm *ltm = localtime(&now);
 
@@ -42,14 +41,12 @@ void    serverInfo(const std::string &message)
 	std::cout << "[" << message << "]" << std::endl;
 };
 
-void	exitErr(std::string msg)
-{
+void	exitErr(std::string msg) {
 	std::cerr << msg << "\n";
 	exit(1);
 }
 
-int	errCheck(int cnd, int res, std::string msg)
-{
+int	errCheck(int cnd, int res, std::string msg) {
 	if (cnd == res)
 		exitErr(msg);
 	return res;
@@ -68,4 +65,10 @@ std::vector<std::string> tokenize(std::string &msg) {
 			token = "";}
 	}
     return tokens;
+}
+
+void ft_write(int _fd, const std::string &message) {
+    std::string buffer = message + "\r\n";
+    if (send(_fd, buffer.c_str(), buffer.length(), 0) < 0)
+        throw std::runtime_error("Error while sending message to client.");
 }
