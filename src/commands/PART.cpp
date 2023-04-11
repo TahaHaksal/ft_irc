@@ -28,6 +28,5 @@ void	Server::part(int fd, std::vector<std::string> token) {
         send(fd, msg.c_str(), msg.size(), 0);
         return;
     }
-
     _clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
 }

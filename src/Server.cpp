@@ -1,3 +1,18 @@
+// 	_commands["CAP"] = &Server::cap; ok
+// 	_commands["QUIT"] = &Server::quit; ok
+// 	_commands["JOIN"] = &Server::join; ok
+// 	_commands["NICK"] = &Server::nick; ok
+// 	_commands["PASS"] = &Server::pass;
+// 	_commands["USER"] = &Server::user;
+// 	_commands["KICK"] = &Server::kick;
+// 	_commands["PART"] = &Server::part;
+// 	_commands["PING"] = &Server::ping;
+// 	_commands["PONG"] = &Server::pong;
+// 	_commands["PRIVMSG"] = &Server::privmsg;
+// 	_commands["NOTICE"] = &Server::notice;
+// 	_commands["MODE"] = &Server::notice;
+// 	_commands["WHO"] = &Server::who;
+
 #include "../headers/Server.hpp"
 
 Server::Server(char **av) : _usrCount(0) {
@@ -123,9 +138,17 @@ void Server::readMessage(int fd) {
 		}
 		if (buf2.size() > 0)
 			arguments.push_back(buf2);
-
+		
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
-
+		if (arguments[0] == "USER" && _clients[fd]->getStatus() != 1)
+		{
+			std::vector<std::string> msg;
+			std::string errMsg = "ERROR :Passwords didn't match";
+			ft_write(fd, errMsg);
+			msg.push_back("Passwords didn't match");
+			quit(fd, msg);
+			break ;
+		}
 		for (size_t i = 0 ; i < arguments.size() ; i++)
 			std::cout << arguments[i] << std::endl;
 

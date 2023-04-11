@@ -40,12 +40,11 @@ void    Server::privmsg(int fd, std::vector<std::string> token)
         ft_write(_clients[nickFd]->getFd(), ":" + _clients[fd]->getPrefixName() + " PRIVMSG " + token[1] + " :" + token[2]);
         return ;
     }
-    std::string channel = token[1][0] != '#' ? '#' + token[1] : token[1];
-    if (_channels.find(channel) != _channels.end())
+    if (_channels.find(token[1]) != _channels.end())
     {
         //FOUND CHANNEL
         std::cout << "Found channel\n";
-        broadcast(_channels.find(channel)->second->_channelClients, token[2], fd);
+        broadcast(_channels.find(token[1])->second->_channelClients, token[2], fd);
         return ;
     }
     //NO USER OR CHANNEL MATCHES
