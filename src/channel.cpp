@@ -9,6 +9,10 @@ Channel::Channel(Client *admin, std::string const &name, std::string const &pass
     _channelPassword = password;
     _clientAuthority = true;
     _maxClientCount = 100;
+
+    _k = password;
+    _l = 0;
+    _n = false;
 }
 
 Channel::~Channel()

@@ -23,6 +23,8 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["PONG"] = &Server::pong;
 	_commands["PRIVMSG"] = &Server::privmsg;
 	_commands["NOTICE"] = &Server::notice;
+	_commands["MODE"] = &Server::notice;
+	_commands["WHO"] = &Server::who;
 }
 
 Server::~Server() {}

@@ -12,13 +12,14 @@ NAME = ft_irc
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CC) $(FLAGS) $(OBJ) -o $(NAME)
+	@$(CC) $(FLAGS) $(OBJ) -o $(NAME)
+	@echo ircServer created
 
 $(OBJ_DIR)/%.o: ./src/commands/%.cpp
-	$(CC) $(FLAGS) -c -o $@ $<
+	@$(CC) $(FLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: ./src/%.cpp
-	$(CC) $(FLAGS) -c -o $@ $<
+	@$(CC) $(FLAGS) -c -o $@ $<
 
 clean:
 	@rm -rf $(OBJ)

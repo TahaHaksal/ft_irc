@@ -4,6 +4,7 @@
 class Server {
     public:
         typedef std::map<std::string, void(Server::*)(int, std::vector<std::string>)> command_map;
+    
     private:
         int                         _port;
         int                         _socketFd;
@@ -51,5 +52,14 @@ class Server {
         void                pong(int fd, std::vector<std::string> token);
         void                privmsg(int fd, std::vector<std::string> token);
         void                notice(int fd, std::vector<std::string> token);
+        void                mode(int fd, std::vector<std::string> token);
+        void                who(int fd, std::vector<std::string> token);
+
+        void casting(int _fd, std::vector<Client *> _clients, const std::string &message)
+        {
+            for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+                ft_write(_fd, message);
+        }
+
 
 };
