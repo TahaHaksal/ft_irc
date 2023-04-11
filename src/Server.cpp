@@ -106,9 +106,22 @@ void Server::readMessage(int fd) {
 
 		std::string buf;
 		std::stringstream args(temp.substr(commandName.length(), temp.length()));
+		std::string	buf2;
+		int flag = 0;
 
 		while (args >> buf)
-			arguments.push_back(buf);
+		{
+			if (buf[0] == ':' || flag)
+			{
+				buf2 += buf + " ";
+				flag = 1;
+			}
+			else
+				arguments.push_back(buf);
+		}
+		if (buf2.size() > 0)
+			arguments.push_back(buf2);
+
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
 
 		for (size_t i = 0 ; i < arguments.size() ; i++)
