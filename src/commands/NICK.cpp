@@ -23,9 +23,11 @@ void	Server::nick(int fd, std::vector<std::string> token) {
 			}
 			else
 			{
-				msg = "[" + _clients[fd]->getNickName() + "] yeni nick: [" + token[1] + "]\r\n";
-				send(fd, msg.c_str(), msg.size(), 0);
+				// std::cout << "geldi\n";
+				// msg = "[" + _clients[fd]->getNickName() + "] yeni nick: [" + token[1] + "]\r\n";
+				msg = ":" + _clients[fd]->getPrefixName() + " NICK " + token[1] + "\r\n";
 				it->second->setNickName(token[1]);
+				send(fd, msg.c_str(), msg.size(), 0);
 			}
 			break;
 		}
