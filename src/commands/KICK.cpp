@@ -1,16 +1,18 @@
+// Deniz burayı yapacak
 #include "../../headers/Server.hpp"
 
 void	Server::kick(int fd, std::vector<std::string> token)
 {
 	std::string	msg;
 	if (token.size() < 3) {
-		msg = "Eksik parametre girdiniz\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NEEDMOREPARAMS(_clients[fd]->getNickName(), "PART"));
 		return;
 	}
 
 	std::string channelName = token[2].substr(token[2][0] == ':', token[2].size());
 	std::string target = token[3].substr(token[3][0] == ':', token[3].size());
+	if (target[target.size() - 1] == ' ')
+		target = target.substr(0, target.size() - 1);
 	std::string reason = "";
 
 	if (token.size() > 4 && (token[4][0] != ':' || token[4].size() > 1)) {
@@ -25,25 +27,26 @@ void	Server::kick(int fd, std::vector<std::string> token)
 			break;
 
 	if (_clients[fd]->_channels.size() == 0 || channelFinder == _clients[fd]->_channels.size()) {
-		msg = "Kanal bulunamadı!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NOSUCHCHANNEL(_clients[fd]->getNickName(), "KICK"));
 		return ;
 	}
 
 	if (_clients[fd]->_channels[channelFinder]->getAdmin() != _clients[fd]) {
-		msg = "Admin yetkiniz yoktur!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
-		return;
+		_clients[fd]->clientMsgSender(fd, ERR_CHANOPRIVSNEEDED(_clients[fd]->getNickName(), "KICK"));
+		return ;
 	}
 
 	int	targetClientFd = -1;
 	for (size_t i = 0 ; i < _clients[fd]->_channels[channelFinder]->_channelClients.size() ; i++)
+	{
+		std::cout << "*" << _clients[fd]->_channels[channelFinder]->_channelClients[i]->getNickName() << "*\n";
+		std::cout << "*" << target << "*\n";
 		if (_clients[fd]->_channels[channelFinder]->_channelClients[i]->getNickName() == target)
 			targetClientFd = _clients[fd]->_channels[channelFinder]->_channelClients[i]->getFd();
+	}
 
 	if (targetClientFd == -1) {
-		msg = "Aranan nickname ile kullanıcı bulunamadı!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_USERNOTINCHANNEL(_clients[fd]->getNickName(), "KICK", channelName));
 		return;
 	}
 
@@ -53,8 +56,7 @@ void	Server::kick(int fd, std::vector<std::string> token)
 			removeChannelIndex = i;
 
 	if (removeChannelIndex == -1) {
-		msg = "Kullanıcı kanala üye değil!\r\n";
-		send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NOTONCHANNEL(_clients[fd]->getNickName(), "KICK"));
 		return;
 	}
 
@@ -62,11 +64,12 @@ void	Server::kick(int fd, std::vector<std::string> token)
 	for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 		std::cout << i + 1 << "->	"<< _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	
+	broadcast(_channels[channelName]->_channelClients, RPL_KICK(_clients[fd]->getNickName(), channelName, target, reason), targetClientFd);
 	_channels[channelName]->leftTheChannel(_clients[targetClientFd]);
 	if (_channels[channelName]->getClientCount() == 0)
 	{
 		std::cout << channelName << " Kanalı Siliniyor...\n";
-		_channels.erase(_channels.find(_channels[channelName]->getName()));
+		_channels.erase(channelName);
 	}
 
 	if (_channels.find(channelName) != _channels.end() && _channels[channelName]->getClientCount() > 0)
@@ -75,13 +78,4 @@ void	Server::kick(int fd, std::vector<std::string> token)
 		for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 			std::cout << i + 1 << "->	" << _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	}
-	
-	// msg = target + " Kanaldan ayrıldı. " + reason + "\r\n";
-	std::cout << "Kicked\n";
-	msg = ":" + channelName + " KICK " + target + reason;
-	ft_write(fd, msg);
-	broadcast(_channels[channelName]->_channelClients, msg, fd);
-
-	// send(fd, msg.c_str(), msg.size(), 0);
-	serverInfo(msg);
 }

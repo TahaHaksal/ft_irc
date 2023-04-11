@@ -23,7 +23,7 @@ Server::Server(char **av) : _usrCount(0) {
 	_addr.sin_family = AF_INET;
 	_addr.sin_addr.s_addr = INADDR_ANY;
 	_addr.sin_port = htons(_port);
-    
+
 	_socketFd = createSocket();
 
 	_commands["CAP"] = &Server::cap;
@@ -42,7 +42,10 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["WHO"] = &Server::who;
 }
 
-Server::~Server() {}
+Server::~Server() {
+	_channels.erase(_channels.begin(), _channels.end());
+	_clients.erase(_clients.begin(), _clients.end());
+}
 
 int Server::createSocket() {
 	int t = 1;
@@ -150,7 +153,7 @@ void Server::readMessage(int fd) {
 			break ;
 		}
 		for (size_t i = 0 ; i < arguments.size() ; i++)
-			std::cout << arguments[i] << std::endl;
+			std::cout << "Arg-> 	" << arguments[i] << std::endl;
 
 		if (_commands.find(arguments[0]) != _commands.end())
 			(this->*_commands[toUpper(arguments[0])])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.

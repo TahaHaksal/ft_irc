@@ -27,6 +27,7 @@ void    Server::broadcast(const std::vector<Client *> &clientList, std::string m
 
 void    Server::privmsg(int fd, std::vector<std::string> token)
 {
+    //token[2][0] == '#' kanal mesajı | değilse -> bireysel mesajlaşma (kullanıcı kontrolü)
     if (token[token.size() - 1][0] != ':' || token.size() < 3)
     {
         ft_write(fd, ":" + _clients[fd]->getPrefixName() + " 461 " + _clients[fd]->getNickName() + " PRIVMSG :Not enough parameters\r\n");

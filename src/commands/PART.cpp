@@ -4,16 +4,14 @@ void	Server::part(int fd, std::vector<std::string> token) {
     std::string msg;
 
     if (token.empty() or token.size() < 2) {
-		msg = "Daha fazla parametre gerekli!\r\n";
-        send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NEEDMOREPARAMS(_clients[fd]->getNickName(), "PART"));
 		return;
 	}
 
 	std::string name = token[1];
 	Channel *channel = _channels[name];
 	if (!channel) {
-		msg = "Kanal bulunamadı!\r\n";
-        send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NOSUCHCHANNEL(_clients[fd]->getNickName(), "PART"));
 		return;
 	}
 
@@ -24,9 +22,11 @@ void	Server::part(int fd, std::vector<std::string> token) {
 
     if (i == _clients[fd]->_channels.size())
     {
-        msg = "Kullanıcı kanalda değil!\r\n";
-        send(fd, msg.c_str(), msg.size(), 0);
+		_clients[fd]->clientMsgSender(fd, ERR_NOTONCHANNEL(_clients[fd]->getNickName(), "PART"));
         return;
     }
-    _clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
+
+    broadcast(channel->_channelClients , RPL_PART(_clients[fd]->getPrefixName(), channel->getName()), fd);
+	_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
+
 }
