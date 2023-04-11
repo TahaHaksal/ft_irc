@@ -37,7 +37,8 @@ class Server {
         void                readMessage(int fd);
         void                newConnection();
         void                serverInfo(std::string message);
-        std::string         getIPv4();
+        int                 findUserByName(std::string name);
+        void                broadcast(const std::vector<Client *> &clientList, std::string msg, int excludeFd);
         
         void                cap(int fd, std::vector<std::string> token);
         void                quit(int fd, std::vector<std::string> token);
@@ -49,6 +50,7 @@ class Server {
         void                part(int fd, std::vector<std::string> token);
         void                ping(int fd, std::vector<std::string> token);
         void                pong(int fd, std::vector<std::string> token);
+        void                privmsg(int fd, std::vector<std::string> token);
         void                notice(int fd, std::vector<std::string> token);
         void                mode(int fd, std::vector<std::string> token);
         void                who(int fd, std::vector<std::string> token);

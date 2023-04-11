@@ -21,6 +21,7 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["PART"] = &Server::part;
 	_commands["PING"] = &Server::ping;
 	_commands["PONG"] = &Server::pong;
+	_commands["PRIVMSG"] = &Server::privmsg;
 	_commands["NOTICE"] = &Server::notice;
 	_commands["MODE"] = &Server::notice;
 	_commands["WHO"] = &Server::who;
@@ -107,16 +108,29 @@ void Server::readMessage(int fd) {
 
 		std::string buf;
 		std::stringstream args(temp.substr(commandName.length(), temp.length()));
+		std::string	buf2;
+		int flag = 0;
 
 		while (args >> buf)
-			arguments.push_back(buf);
+		{
+			if (buf[0] == ':' || flag)
+			{
+				buf2 += buf + " ";
+				flag = 1;
+			}
+			else
+				arguments.push_back(buf);
+		}
+		if (buf2.size() > 0)
+			arguments.push_back(buf2);
+
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
 
 		for (size_t i = 0 ; i < arguments.size() ; i++)
 			std::cout << arguments[i] << std::endl;
 
 		if (_commands.find(arguments[0]) != _commands.end())
-			(this->*_commands[arguments[0]])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
+			(this->*_commands[toUpper(arguments[0])])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
 		else
 			std::cout << "Error: command not found!\n";
 	}
@@ -129,29 +143,4 @@ void    Server::serverInfo(std::string message) {
 	std::cout << ltm->tm_mday << "." << ltm->tm_mon+1 << "." << ltm->tm_year+1900;
   	std::cout << " " << ltm->tm_hour << ":" << ltm->tm_min << ":" << ltm->tm_sec << std::endl;
 	std::cout << "[" << message << "]" << std::endl;
-}
-
-std::string         Server::getIPv4(){
-	struct addrinfo hints, *res;
-    int status;
-    char ipstr[INET_ADDRSTRLEN];
-    std::string result = "";
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((status = getaddrinfo("localhost", NULL, &hints, &res)) != 0) {
-        std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
-        return "";
-    }
-
-    struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
-    void *addr = &(ipv4->sin_addr);
-    inet_ntop(res->ai_family, addr, ipstr, sizeof ipstr);
-    result = ipstr;
-
-    freeaddrinfo(res);
-
-    return result;
 }
