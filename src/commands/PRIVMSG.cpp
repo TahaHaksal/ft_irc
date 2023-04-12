@@ -7,11 +7,9 @@
  */
 int Server::findUserByName(std::string name)
 {
-    for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end();it++)
-    {
+    for (std::map<int, Client *>::iterator it = _clients.begin() ; it != _clients.end() ; it++)
         if (it->second->getNickName() == name)
             return it->first;
-    }
     return -1;
 }
 
@@ -22,6 +20,7 @@ void    Server::broadcast(const std::vector<Client *> &clientList, std::string m
         if (clientList[i]->getFd() == excludeFd)
             continue ;
         ft_write(clientList[i]->getFd(), ":" + _clients[excludeFd]->getPrefixName() + " PRIVMSG " + channelName + " " + msg);
+
     }
 }
 

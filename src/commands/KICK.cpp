@@ -3,21 +3,26 @@
 
 void	Server::kick(int fd, std::vector<std::string> token)
 {
+	token.erase(token.begin());
 	std::string	msg;
+
+	for (size_t i = 0 ; i < token.size() ; i++)
+		std::cout << "*" << token[i] << "*\n";
+
 	if (token.size() < 3) {
-		_clients[fd]->clientMsgSender(fd, ERR_NEEDMOREPARAMS(_clients[fd]->getNickName(), "PART"));
+		_clients[fd]->clientMsgSender(fd, ERR_NEEDMOREPARAMS(_clients[fd]->getNickName(), "KICK"));
 		return;
 	}
 
-	std::string channelName = token[2].substr(token[2][0] == ':', token[2].size());
-	std::string target = token[3].substr(token[3][0] == ':', token[3].size());
+	std::string channelName = token[1].substr(token[1][0] == ':', token[1].size());
+	std::string target = token[2].substr(token[2][0] == ':', token[2].size());
 	if (target[target.size() - 1] == ' ')
 		target = target.substr(0, target.size() - 1);
 	std::string reason = "";
 
-	if (token.size() > 4 && (token[4][0] != ':' || token[4].size() > 1)) {
+	if (token.size() > 3 && (token[3][0] != ':' || token[3].size() > 1)) {
 		reason = "";
-		for (size_t it = 4; it < token.size() ; it++)
+		for (size_t it = 3 ; it < token.size() ; it++)
 			reason.append(token[it] + " ");
 	}
 
@@ -38,12 +43,8 @@ void	Server::kick(int fd, std::vector<std::string> token)
 
 	int	targetClientFd = -1;
 	for (size_t i = 0 ; i < _clients[fd]->_channels[channelFinder]->_channelClients.size() ; i++)
-	{
-		std::cout << "*" << _clients[fd]->_channels[channelFinder]->_channelClients[i]->getNickName() << "*\n";
-		std::cout << "*" << target << "*\n";
 		if (_clients[fd]->_channels[channelFinder]->_channelClients[i]->getNickName() == target)
 			targetClientFd = _clients[fd]->_channels[channelFinder]->_channelClients[i]->getFd();
-	}
 
 	if (targetClientFd == -1) {
 		_clients[fd]->clientMsgSender(fd, ERR_USERNOTINCHANNEL(_clients[fd]->getNickName(), "KICK", channelName));
