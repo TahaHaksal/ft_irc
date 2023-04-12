@@ -7,11 +7,9 @@
  */
 int Server::findUserByName(std::string name)
 {
-    for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end();it++)
-    {
+    for (std::map<int, Client *>::iterator it = _clients.begin() ; it != _clients.end() ; it++)
         if (it->second->getNickName() == name)
             return it->first;
-    }
     return -1;
 }
 
@@ -21,34 +19,49 @@ void    Server::broadcast(const std::vector<Client *> &clientList, std::string m
     {
         if (clientList[i]->getFd() == excludeFd)
             continue ;
-        ft_write(clientList[i]->getFd(), ":" + _clients[excludeFd]->getPrefixName() + " PRIVMSG " + _clients[excludeFd]->getNickName() + " :" + msg);
+        ft_write(clientList[i]->getFd(), msg);
     }
 }
 
 void    Server::privmsg(int fd, std::vector<std::string> token)
 {
-    //token[2][0] == '#' kanal mesajı | değilse -> bireysel mesajlaşma (kullanıcı kontrolü)
-    if (token[token.size() - 1][0] != ':' || token.size() < 3)
-    {
-        ft_write(fd, ":" + _clients[fd]->getPrefixName() + " 461 " + _clients[fd]->getNickName() + " PRIVMSG :Not enough parameters\r\n");
-        return ;
-    }
-    int nickFd = findUserByName(token[1]);
-    if (_clients.find(nickFd) != _clients.end())
-    {
-        //FOUND USER
-        std::cout << "Found user\n";
-        ft_write(_clients[nickFd]->getFd(), ":" + _clients[fd]->getPrefixName() + " PRIVMSG " + token[1] + " :" + token[2]);
-        return ;
-    }
-    if (_channels.find(token[1]) != _channels.end())
-    {
-        //FOUND CHANNEL
-        std::cout << "Found channel\n";
-        broadcast(_channels.find(token[1])->second->_channelClients, token[2], fd);
-        return ;
-    }
-    //NO USER OR CHANNEL MATCHES
-    std::cout << "Couldn't find user or channel\n";
-    ft_write(fd, ":" + _clients[fd]->getPrefixName() + " 401 " + token[1] + ": No such Nick/Channel\r\n");
+	if (token.size() < 3) {
+		_clients[fd]->clientMsgSender(fd, ERR_NEEDMOREPARAMS(_clients[fd]->getNickName(), "PRIVMSG"));
+		return;
+	}
+
+	if (token[2][0] == ':')
+		token[2].erase(0, 1);
+
+	if (token[1][0] == '#') {
+		Channel *channel = _channels[token[1]];
+		if (!channel)
+		{
+			_clients[fd]->clientMsgSender(fd, ERR_NOSUCHCHANNEL(_clients[fd]->getNickName(), token[1]));
+			return;
+		}
+
+		if (channel->getClientAuthority())
+		{
+			size_t	i = 0;
+			for (i = 0 ; i < _channels[token[1]]->_channelClients.size() ; i++) // Kanala mesaj yollamak için şimdiki kullanıcının kanalda olması gereklidir.
+				if (_channels[token[1]]->_channelClients[i]->getNickName() == _clients[fd]->getNickName())
+					break;
+			if (i == _channels[token[1]]->_channelClients.size())
+			{
+				_clients[fd]->clientMsgSender(fd, ERR_CANNOTSENDTOCHAN(_clients[fd]->getNickName(), token[1]));
+				return;
+			}
+		}
+		broadcast(channel->_channelClients, RPL_PRIVMSG(_clients[fd]->getPrefixName(), token[1], token[2]), fd);
+		return;
+	}
+
+	int destFd = findUserByName(token[1]);
+	if (destFd == -1)
+	{
+		_clients[fd]->clientMsgSender(fd, ERR_NOSUCHNICK(_clients[fd]->getNickName(), token[1]));
+		return;
+	}
+	ft_write(destFd, RPL_PRIVMSG(_clients[fd]->getPrefixName(), token[1], token[2]));
 }
