@@ -54,9 +54,9 @@ class Client
             return (prefixName);
         }
 
-        void clientMsgSender(int _fd, std::string const &msg)
+        void clientMsgSender(int fd, std::string const &msg)
         {
-            ft_write(_fd , ":" + getPrefixName() + " " + msg);
+            ft_write(fd , ":" + getPrefixName() + " " + msg);
         }
 
         void casting(int _fd, std::vector<Client *> _clients, const std::string &message)

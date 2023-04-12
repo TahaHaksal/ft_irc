@@ -1,18 +1,3 @@
-// 	_commands["CAP"] = &Server::cap; ok
-// 	_commands["QUIT"] = &Server::quit; ok
-// 	_commands["JOIN"] = &Server::join; ok
-// 	_commands["NICK"] = &Server::nick; ok
-// 	_commands["PASS"] = &Server::pass;
-// 	_commands["USER"] = &Server::user;
-// 	_commands["KICK"] = &Server::kick;
-// 	_commands["PART"] = &Server::part;
-// 	_commands["PING"] = &Server::ping;
-// 	_commands["PONG"] = &Server::pong;
-// 	_commands["PRIVMSG"] = &Server::privmsg;
-// 	_commands["NOTICE"] = &Server::notice;
-// 	_commands["MODE"] = &Server::notice;
-// 	_commands["WHO"] = &Server::who;
-
 #include "../headers/Server.hpp"
 
 Server::Server(char **av) : _usrCount(0) {
@@ -35,10 +20,9 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["KICK"] = &Server::kick;
 	_commands["PART"] = &Server::part;
 	_commands["PING"] = &Server::ping;
-	_commands["PONG"] = &Server::pong;
 	_commands["PRIVMSG"] = &Server::privmsg;
 	_commands["NOTICE"] = &Server::notice;
-	_commands["MODE"] = &Server::notice;
+	_commands["MODE"] = &Server::mode;
 	_commands["WHO"] = &Server::who;
 }
 
@@ -154,7 +138,6 @@ void Server::readMessage(int fd) {
 		}
 		for (size_t i = 0 ; i < arguments.size() ; i++)
 			std::cout << "Arg-> 	" << arguments[i] << std::endl;
-
 		if (_commands.find(arguments[0]) != _commands.end())
 			(this->*_commands[toUpper(arguments[0])])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
 		else

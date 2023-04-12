@@ -54,6 +54,10 @@ std::string     Channel::getUsers()
 {
     std::string users;
     for (size_t i = 0 ; i < _channelClients.size() ; i++)
-	    users.append(_channelClients[i]->getNickName() + " ");
+	{
+        users += _channelClients[i]->getNickName();
+        if (i + 1 < _channelClients.size())
+            users += ",";
+    }
     return users;
 }

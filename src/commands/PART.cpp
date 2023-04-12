@@ -1,5 +1,15 @@
 #include "../../headers/Server.hpp"
 
+void    Server::broadcastPart(const std::vector<Client *> &clientList, std::string msg, int excludeFd, std::string channelName)
+{
+    for (size_t i = 0; i < clientList.size(); i++)
+    {
+        if (clientList[i]->getFd() == excludeFd)
+            continue ;
+        ft_write(clientList[i]->getFd(), ":" + _clients[excludeFd]->getPrefixName() + " PART " + channelName + " :" + msg);
+    }
+}
+
 void	Server::part(int fd, std::vector<std::string> token) {
     std::string msg;
 
@@ -26,7 +36,9 @@ void	Server::part(int fd, std::vector<std::string> token) {
         return;
     }
 
-    broadcast(channel->_channelClients , RPL_PART(_clients[fd]->getPrefixName(), channel->getName()), fd);
+    broadcastPart(channel->_channelClients , RPL_PART(_clients[fd]->getPrefixName(), channel->getName()), fd, name);
+	msg = ":" + _clients[fd]->getPrefixName() + " PART " + name;
+	ft_write(fd, msg);
 	_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
 
 }
