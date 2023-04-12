@@ -1,4 +1,3 @@
-// Deniz burayı yapacak
 #include "../../headers/Server.hpp"
 
 void	Server::kick(int fd, std::vector<std::string> token)
@@ -65,7 +64,7 @@ void	Server::kick(int fd, std::vector<std::string> token)
 	for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 		std::cout << i + 1 << "->	"<< _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	
-	broadcast(_channels[channelName]->_channelClients, RPL_KICK(_clients[fd]->getNickName(), channelName, target, reason), channelName, targetClientFd);
+	broadcast(_channels[channelName]->_channelClients, RPL_KICK(_clients[fd]->getNickName(), channelName, target, reason), targetClientFd);
 	_channels[channelName]->leftTheChannel(_clients[targetClientFd]);
 	if (_channels[channelName]->getClientCount() == 0)
 	{
