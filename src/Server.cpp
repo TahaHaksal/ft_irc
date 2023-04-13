@@ -1,7 +1,7 @@
 #include "../headers/Server.hpp"
 
 Server::Server(char **av) : _usrCount(0) {
-    _port = std::atoi(av[1]);
+	_port = std::atoi(av[1]);
     _password = av[2];
 
 	memset((char *)&_addr, 0, sizeof(_addr));
@@ -20,6 +20,7 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["KICK"] = &Server::kick;
 	_commands["PART"] = &Server::part;
 	_commands["PING"] = &Server::ping;
+	_commands["PONG"] = &Server::pong;
 	_commands["PRIVMSG"] = &Server::privmsg;
 	_commands["NOTICE"] = &Server::notice;
 	_commands["MODE"] = &Server::mode;
@@ -27,8 +28,16 @@ Server::Server(char **av) : _usrCount(0) {
 }
 
 Server::~Server() {
-	_channels.erase(_channels.begin(), _channels.end());
-	_clients.erase(_clients.begin(), _clients.end());
+
+	for (std::map<int, Client *>::iterator it = _clients.begin() ; it != _clients.end(); ++it) {
+	    delete it->second;
+	}
+	_clients.clear();
+
+    for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it) {
+        delete it->second;
+    }
+    _channels.clear();
 }
 
 int Server::createSocket() {
@@ -127,17 +136,20 @@ void Server::readMessage(int fd) {
 			arguments.push_back(buf2);
 		
 		arguments.insert(arguments.begin(), commandName); // Argümanları aldığım komutların senin fonksiyon map'ine uyarlamak için argümanların başına yukarıdan aldığım commandName'i ekledim
+		
+		for (size_t i = 0 ; i < arguments.size() ; i++)
+			std::cout << "*" << arguments[i] << "*\n";
+
 		if (arguments[0] == "USER" && _clients[fd]->getStatus() != 1)
 		{
 			std::vector<std::string> msg;
-			std::string errMsg = "ERROR :Passwords didn't match";
+			std::string errMsg = "ERROR :Error either password was not given or the nick was in use";
 			ft_write(fd, errMsg);
 			msg.push_back("Passwords didn't match");
 			quit(fd, msg);
 			break ;
 		}
-		for (size_t i = 0 ; i < arguments.size() ; i++)
-			std::cout << "Arg-> 	" << arguments[i] << std::endl;
+
 		if (_commands.find(arguments[0]) != _commands.end())
 			(this->*_commands[toUpper(arguments[0])])(fd, arguments); // İstenen adda bir fonksiyonumuz varsa fonksiyona gidiyorum yoksa command not found.
 		else

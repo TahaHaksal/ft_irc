@@ -38,11 +38,13 @@ class Server {
         void                newConnection();
         void                serverInfo(std::string message);
         int                 findUserByName(std::string name);
-        void                broadcast(const std::vector<Client *> &clientList, std::string msg, std::string channelName, int excludeFd);
-        void                broadcastNotice(const std::vector<Client *> &clientList, std::string msg, int excludeFd, std::string channelName);
+        void                broadcast(const std::vector<Client *> &clientList, std::string msg, int excludeFd);
         void                broadcastPart(const std::vector<Client *> &clientList, std::string msg, int excludeFd, std::string channelName);
-
+        void                broadcastNotice(const std::vector<Client *> &clientList, std::string msg, int excludeFd, std::string channelName);
+        
         void                cap(int fd, std::vector<std::string> token);
+        void                who(int fd, std::vector<std::string> token);
+
         void                quit(int fd, std::vector<std::string> token);
         void                join(int fd, std::vector<std::string> token);
         void                pass(int fd, std::vector<std::string> token);
@@ -51,10 +53,10 @@ class Server {
         void                kick(int fd, std::vector<std::string> token);
         void                part(int fd, std::vector<std::string> token);
         void                ping(int fd, std::vector<std::string> token);
-        void                privmsg(int fd, std::vector<std::string> token);
-        void                notice(int fd, std::vector<std::string> token);
+        void                pong(int fd, std::vector<std::string> token);
         void                mode(int fd, std::vector<std::string> token);
-        void                who(int fd, std::vector<std::string> token);
+        void                notice(int fd, std::vector<std::string> token);
+        void                privmsg(int fd, std::vector<std::string> token);
 
         void casting(int _fd, std::vector<Client *> _clients, const std::string &message)
         {

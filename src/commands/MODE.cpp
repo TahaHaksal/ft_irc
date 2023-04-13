@@ -1,4 +1,3 @@
-// Deniz burayı yapacak
 #include "../../headers/Server.hpp"
 
 void broadcasting(const std::string &message, std::vector<Client *> _clients)

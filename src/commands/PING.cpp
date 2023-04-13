@@ -10,3 +10,4 @@ void	Server::ping(int fd, std::vector<std::string> token)
 	std::cout << token[1] << std::endl;
 	ft_write(fd, msg);
 }
+

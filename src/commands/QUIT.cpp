@@ -1,13 +1,7 @@
 #include "../../headers/Server.hpp"
 
-void	Server::quit(int fd, std::vector<std::string> token) { // send komutları quit fonksiyonuna gelir gelmez kullanıcının fd'si kapandığı için hata veriyor, neden kapanıyor?
-	std::cout << "QUIT Function started\n";
-
-	(void) token;
-	Client *clientPtr = _clients.at(fd);
-
-	// Kullanıcı /quit ile çıkarken argüman olarak ayrılık mesajı da verebilir Verdiği argümanları ' ' ile birleştirip client'e göndermeliyiz.
-
+void	Server::quit(int fd, std::vector<std::string> token)
+{
 	for (size_t i = 0 ; i < _pollfds.size() ; i++)
 	{
 		if (fd == _pollfds[i].fd)
@@ -23,11 +17,10 @@ void	Server::quit(int fd, std::vector<std::string> token) { // send komutları q
 		_clients[fd]->_channels[i]->leftTheChannel(_clients[fd]);
 		if (_clients[fd]->_channels[i]->getClientCount() == 0)
 		{
-			std::cout << "Kanal Siliniyor...\n";
+			std::cout << "Channel delete...\n";
 			_channels.erase(_channels.find(_clients[fd]->_channels[i]->getName()));
 		}
 	}
 	_clients.erase(fd); // server'dan kullanıcıyı sildim.
-	delete clientPtr;
 	_usrCount--;
 }

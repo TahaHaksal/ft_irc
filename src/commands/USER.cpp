@@ -1,7 +1,6 @@
 #include "../../headers/Server.hpp"
 
 void	Server::user(int fd, std::vector<std::string> token) {
-	// std::cout << "USER Function started\n";
 	// /USER <username> <hostname> <servername> <realname>
 
 	std::string msg;
@@ -14,7 +13,7 @@ void	Server::user(int fd, std::vector<std::string> token) {
 	}
 
 	_clients[fd]->setUserName(token[1]);
-	_clients[fd]->setRealName(token[4].substr(token[4][0] == ':', token[4].size())); // realnamein başında genelde : oluyor onu keserek aldım.
+	_clients[fd]->setRealName(token[4].substr(token[4][0] == ':', token[4].size()));
 	msg = ":"  +_clients[fd]->getPrefixName() + " 001 " + _clients[fd]->getNickName() + " :Welcome to FT_IRC Made by Mhaksal and Dkarhan";
 	ft_write(fd, msg);
 }
