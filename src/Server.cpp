@@ -20,7 +20,6 @@ Server::Server(char **av) : _usrCount(0) {
 	_commands["KICK"] = &Server::kick;
 	_commands["PART"] = &Server::part;
 	_commands["PING"] = &Server::ping;
-	_commands["PONG"] = &Server::pong;
 	_commands["PRIVMSG"] = &Server::privmsg;
 	_commands["NOTICE"] = &Server::notice;
 	_commands["MODE"] = &Server::mode;

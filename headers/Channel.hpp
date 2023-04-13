@@ -14,9 +14,9 @@ class Channel
         std::string     _channelName;
         std::string     _channelPassword;
 
-        /* Modes */
+        /* Channel modes */
 		std::string				_k; // set a channel key password
-		size_t					_l; // set the user limit to channel, l = 0
+		size_t					_l; // set the user limit to channel
 		bool					_n; // no messages to channel from clients on the outside
 
         Client          *_channelAdmin;
