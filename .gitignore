@@ -1,2 +1,2 @@
 build/*.o
-ft_irc
+ircserver
