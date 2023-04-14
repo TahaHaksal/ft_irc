@@ -38,5 +38,5 @@ void	Server::notice(int fd, std::vector<std::string> token)
         broadcastNotice(_channels.find(token[1])->second->_channelClients, token[2], fd, token[1]);
         return ;
     }
-    ft_write(fd, ":" + _clients[fd]->getPrefixName() + " 401 " + token[1] + ": No such Nick/Channel\r\n"); //NO USER OR CHANNEL MATCHES
+    ft_write(fd, ":" + _clients[fd]->getPrefixName() + " 401 " + token[1] + ":No such Nick/Channel\r\n"); //NO USER OR CHANNEL MATCHES
 }

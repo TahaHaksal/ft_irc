@@ -53,7 +53,7 @@ void	Server::kick(int fd, std::vector<std::string> token)
 		return;
 	}
 
-	std::cout << std::endl << "Before channel's admin:	" << _channels[channelName]->getAdmin()->getNickName() << std::endl;
+	std::cout << std::endl << "Channel's new admin is:	" << _channels[channelName]->getAdmin()->getNickName() << std::endl;
 	for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 		std::cout << i + 1 << "->	"<< _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	
@@ -61,13 +61,13 @@ void	Server::kick(int fd, std::vector<std::string> token)
 	_channels[channelName]->leftTheChannel(_clients[targetClientFd]);
 	if (_channels[channelName]->getClientCount() == 0)
 	{
-		std::cout << channelName << " Channel delete...\n";
+		std::cout << channelName << " Deleting the channel...\n";
 		_channels.erase(channelName);
 	}
 
 	if (_channels.find(channelName) != _channels.end() && _channels[channelName]->getClientCount() > 0)
 	{
-		std::cout << std::endl << "After channel's admin:	" << _channels[channelName]->getAdmin()->getNickName() << std::endl;
+		std::cout << std::endl << "Channel's new admin is:	" << _channels[channelName]->getAdmin()->getNickName() << std::endl;
 		for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 			std::cout << i + 1 << "->	" << _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	}

@@ -9,7 +9,7 @@ void	Server::join(int fd, std::vector<std::string> token) {
 	token[1] = (token[1][0] != '#' ? "#" + token[1] : token[1]);
 	if (_channels.find(token[1]) == _channels.end())
 	{
-		msg = token[1] + " channel creating..."; ft_write(fd, msg);
+		msg = token[1] + " creating channel..."; ft_write(fd, msg);
 		msg = "Admin login"; ft_write(fd, msg);
 		_channels[token[1]] = new Channel(_clients[fd], token[1], token.size() > 2 ? token[2] : "");
 		_clients[fd]->_channels.push_back(_channels[token[1]]);
