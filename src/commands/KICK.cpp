@@ -2,7 +2,7 @@
 
 void	Server::kick(int fd, std::vector<std::string> token)
 {
-	token.erase(token.begin());
+	// token.erase(token.begin());
 	std::string	msg;
 
 	if (token.size() < 3) {
@@ -33,11 +33,7 @@ void	Server::kick(int fd, std::vector<std::string> token)
 		return ;
 	}
 
-	int	targetClientFd = -1;
-	for (size_t i = 0 ; i < _clients[fd]->_channels[channelFinder]->_channelClients.size() ; i++)
-		if (_clients[fd]->_channels[channelFinder]->_channelClients[i]->getNickName() == target)
-			targetClientFd = _clients[fd]->_channels[channelFinder]->_channelClients[i]->getFd();
-
+	int	targetClientFd = findUserByName(target);
 	if (targetClientFd == -1) {
 		_clients[fd]->clientMsgSender(fd, ERR_USERNOTINCHANNEL(_clients[fd]->getNickName(), "KICK", channelName));
 		return;
@@ -57,8 +53,10 @@ void	Server::kick(int fd, std::vector<std::string> token)
 	for (size_t i = 0 ; i < _channels[channelName]->_channelClients.size() ; i++)
 		std::cout << i + 1 << "->	"<< _channels[channelName]->_channelClients[i]->getNickName() << std::endl;
 	
-	broadcast(_channels[channelName]->_channelClients, RPL_KICK(_clients[fd]->getNickName(), channelName, target, token[2]), targetClientFd);
+	broadcast(_channels[channelName]->_channelClients, RPL_KICK(_clients[fd]->getNickName(), channelName, target, token[2]), fd);
+	ft_write(fd, RPL_KICK(_clients[fd]->getNickName(), channelName, target, token[2]));
 	_channels[channelName]->leftTheChannel(_clients[targetClientFd]);
+	_clients[targetClientFd]->_channels.erase(_clients[targetClientFd]->_channels.begin() + removeChannelIndex);
 	if (_channels[channelName]->getClientCount() == 0)
 	{
 		std::cout << channelName << " Deleting the channel...\n";
