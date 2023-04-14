@@ -37,6 +37,7 @@ std::string	Client::getPrefixName()
 
 void	Client::clientMsgSender(int _fd, std::string const &msg)
 {
+    //nc çalışmıyor bakma aga
     ft_write(_fd, ":" + getPrefixName() + " " + msg);
 }
 

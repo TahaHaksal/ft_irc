@@ -1,2 +1,3 @@
 build/*.o
 ircserv
+.DS_Store

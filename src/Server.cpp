@@ -59,6 +59,13 @@ void	Server::loop() {
 		errCheck(-1, poll(_pollfds.begin().base(), _pollfds.size(), -1), "Poll Failed");
 		for (size_t i = 0 ; i < _pollfds.size() ; i++)
 		{
+			if (_pollfds[i].revents & POLLHUP)
+			{
+				std::vector<std::string> msg;
+				msg.push_back("Disconnected ()");
+				quit(_pollfds[i].fd, msg);
+				break;
+			}
 			if (_pollfds[i].revents & POLLIN)
 			{
 				if (_pollfds[i].fd == _socketFd)
@@ -118,23 +125,24 @@ void Server::readMessage(int fd) {
 		std::string	buf2;
 		int flag = 0;
 
+		// std :: cout << args.str() << "\n";
 		while (args >> buf)
 		{
+			std::cout << buf << std::endl;
 			if (buf[0] == ':' || flag)
 			{
 				buf2 += buf + " ";
 				flag = 1;
 			}
-			else
+			else if (buf.size() > 0)
 				arguments.push_back(buf);
 		}
 		if (buf2.size() > 0)
 			arguments.push_back(buf2);
-		
 		arguments.insert(arguments.begin(), commandName);
 		
-		// for (size_t i = 0 ; i < arguments.size() ; i++)
-		// 	std::cout << "*" << arguments[i] << "*\n";
+		for (size_t i = 0 ; i < arguments.size() ; i++)
+			std::cout << arguments[i].size() << "*" << arguments[i] << "*\n";
 
 		if (arguments[0] == "USER" && _clients[fd]->getStatus() != 1)
 		{
