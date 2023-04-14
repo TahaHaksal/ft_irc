@@ -43,7 +43,7 @@ void	Server::part(int fd, std::vector<std::string> token) {
     _clients[fd]->_channels.erase(_clients[fd]->_channels.begin() + i);
     if (_clients[fd]->_channels[i]->getClientCount() == 0)
 	{
-		std::cout << _clients[fd]->_channels[i]->getName() << " Kanalı Siliniyor...\n";
+		std::cout << _clients[fd]->_channels[i]->getName() << " Channel delete...\n";
 		_channels.erase(_clients[fd]->_channels[i]->getName());
 	}
 }
